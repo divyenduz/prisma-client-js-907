@@ -1,10 +1,53 @@
 const express = require('express')
-const path = require('path')
-const PORT = process.env.PORT || 5000
+const dotenv = require('dotenv')
+dotenv.config()
 
-express()
-  .use(express.static(path.join(__dirname, 'public')))
-  .set('views', path.join(__dirname, 'views'))
-  .set('view engine', 'ejs')
-  .get('/', (req, res) => res.render('pages/index'))
-  .listen(PORT, () => console.log(`Listening on ${ PORT }`))
+const { PrismaClient, prismaVersion } = require('@prisma/client')
+const client = new PrismaClient()
+
+const app = express()
+const port = process.env.PORT || 3000
+
+app.get('/', async (req, res) => {
+  await client.user.deleteMany({})
+
+  const id = '12345'
+
+  const createUser = await client.user.create({
+    data: {
+      id,
+      email: 'alice@prisma.io',
+      name: 'Alice',
+    },
+  })
+
+  const updateUser = await client.user.update({
+    where: {
+      id,
+    },
+    data: {
+      email: 'bob@prisma.io',
+      name: 'Bob',
+    },
+  })
+
+  const users = await client.user.findOne({
+    where: {
+      id,
+    },
+  })
+
+  const deleteManyUsers = await client.user.deleteMany()
+
+  return res.send(
+    JSON.stringify({
+      version: prismaVersion.client,
+      createUser,
+      updateUser,
+      users,
+      deleteManyUsers,
+    }),
+  )
+})
+
+app.listen(port, () => console.log(`Example app listening on port ${port}!`))
